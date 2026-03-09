@@ -1,0 +1,29 @@
+version: "3.9"
+
+services:
+  prompt-guard-proxy:
+    build: .
+    container_name: prompt-guard-proxy
+    ports:
+      - "8001:8001"
+
+    environment:
+      BACKEND_URL: ${BACKEND_URL}
+      MODEL_ID: ${MODEL_ID}
+
+    volumes:
+      - ~/.cache/huggingface/hub:/root/.cache/huggingface/hub
+      - ~/.cache/huggingface/token:/root/.cache/huggingface/token:ro
+
+    env_file:
+      - .env
+
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+    restart: unless-stopped
