@@ -1,0 +1,40 @@
+services:
+  vllm-openai:
+    image: vllm/vllm-openai:latest
+    container_name: vllm-openai
+    ports:
+      - "8000:8000"
+      - "8001:8001"
+    environment:
+      # Note: Compose doesn't support $(cat ...) directly. 
+      # You should set HF_TOKEN in your shell or a .env file.
+      - HF_TOKEN=${HF_TOKEN}
+    volumes:
+      - ~/.cache/huggingface:/root/.cache/huggingface
+      - ./supervisord.conf:/etc/supervisor/conf.d/supervisord.conf
+      - ./guard_proxy.py:/vllm-workspace/guard_proxy.py
+      - ./entrypoint.sh:/vllm-workspace/entrypoint.sh
+    networks:
+      - vllm
+    ipc: host
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    entrypoint: ["./entrypoint.sh"]
+    command: >
+      --model casperhansen/deepseek-r1-distill-qwen-7b-awq
+      --quantization awq
+      --dtype half
+      --gpu-memory-utilization 0.89
+      --max-model-len 8096
+      --reasoning-parser deepseek_r1
+      --enable-auto-tool-choice 
+      --tool-call-parser hermes
+
+networks:
+  vllm:
+    external: true
