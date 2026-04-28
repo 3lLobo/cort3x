@@ -100,7 +100,7 @@ async def proxy_gateway(request: Request, path: str):
                 if not result["is_safe"]:
                     logger.warning(f"BLOCK | Detected {result['label']}")
                     return Response(
-                        content='{"error": "Access denied: Malicious content detected."}',
+                        content='{"error": "403 Access denied: Malicious content detected."}',
                         status_code=403,
                         media_type="application/json",
                     )
