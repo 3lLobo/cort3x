@@ -93,10 +93,14 @@ async def proxy_gateway(request: Request, path: str):
 
             if user_text:
                 result = analyze_text_safety(user_text)
+                logger.info(
+                    f"SCAN | Path: /{path} | Label: {result['label']} | "
+                    f"Inference: {result['inference_ms']:.2f}ms"
+                )
                 if not result["is_safe"]:
                     logger.warning(f"BLOCK | Detected {result['label']}")
                     return Response(
-                        content='{"error": "Access denied: Malicious content detected."}',
+                        content='{"error": "403 Access denied: Malicious content detected."}',
                         status_code=403,
                         media_type="application/json",
                     )
@@ -116,7 +120,12 @@ async def proxy_gateway(request: Request, path: str):
     try:
         # Request a streaming response from the backend
         backend_response = await http_client.send(proxy_req, stream=True)
+        forward_ms = (time.perf_counter() - start_forward) * 1000
 
+        logger.info(
+            f"FORWARD | {method} /{path} -> {backend_response.status_code} | "
+            f"Latency: {forward_ms:.2f}ms"
+        )
         # Handle Streaming Case
         if is_streaming_requested:
             return StreamingResponse(
