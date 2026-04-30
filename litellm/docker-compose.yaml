@@ -1,0 +1,50 @@
+services:
+  # The LiteLLM Proxy Service
+  litellm:
+    image: ghcr.io/berriai/litellm-database:main-stable
+    container_name: litellm-proxy
+    ports:
+      - "4000:4000"
+    networks:
+      - vllm
+      - litellm
+    volumes:
+      - ./litellm_config.yaml:/app/config.yaml
+    environment:
+      - LITELLM_MASTER_KEY=sk-1234
+      - DATABASE_URL=postgresql://llm_user:llm_password@db:5432/litellm_db
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY}
+    command: ["--config", "/app/config.yaml", "--detailed_debug"]
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # The PostgreSQL Database Service
+  db:
+    image: postgres:16-alpine
+    container_name: litellm-db
+    environment:
+      - POSTGRES_USER=llm_user
+      - POSTGRES_PASSWORD=llm_password
+      - POSTGRES_DB=litellm_db
+    networks:
+      - litellm
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U llm_user -d litellm_db"]
+      interval: 1s
+      timeout: 1s
+      retries: 50
+
+networks:
+  vllm:
+    external: true
+  litellm:
+    driver: bridge
+
+volumes:
+  pgdata:
