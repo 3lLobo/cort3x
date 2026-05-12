@@ -1,30 +1,46 @@
-from langchain.prompts import ChatPromptTemplate
-from app.state import CaseState
+from langchain_core.prompts import ChatPromptTemplate
 from app.llm import get_llm
+from app.context import build_context
+from app.parsing import safe_json_parse
 
 llm = get_llm()
 
-def decide_next_tool(state: CaseState, tools: list) -> str | None:
-    tool_desc = "\n".join([f"{t.name}: {t.description}" for t in tools])
-    findings = "\n".join([f["summary"] for f in state["findings"]])
 
-    prompt = ChatPromptTemplate.from_template("""
-You are a SOC analyst.
+def build_tools(tools: list) -> str:
+    return "\n".join(f"{t.name}: {t.description}" for t in tools)
 
-Available tools:
+
+DECISION_PROMPT = ChatPromptTemplate.from_template("""
+You are a SOC analyst selecting the next investigation tool.
+
+TOOLS:
 {tools}
 
-Current findings:
-{findings}
+CONTEXT:
+{context}
 
-Return ONLY one tool name or NONE.
+Return STRICT JSON only:
+{{
+  "tool": "tool_name | NONE",
+  "reason": "short explanation"
+}}
 """)
 
-    chain = prompt | llm
-    result = chain.invoke({
-        "tools": tool_desc,
-        "findings": findings
-    }).content.strip()
 
-    return None if result == "NONE" else result
-    
+def decide_next_tool(state, tools):
+    chain = DECISION_PROMPT | llm
+
+    raw = chain.invoke({
+        "tools": build_tools(tools),
+        "context": build_context(state)
+    }).content
+
+    result = safe_json_parse(
+        raw,
+        required_fields=["tool", "reason"],
+        fallback={"tool": "NONE", "reason": "parse failure"}
+    )
+
+    state.setdefault("decisions", []).append(result)
+
+    return None if result["tool"] == "NONE" else result["tool"]

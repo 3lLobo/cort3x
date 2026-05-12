@@ -1,9 +1,11 @@
 from typing import List, Dict, Any, TypedDict
 
+
 class Finding(TypedDict):
     source: str
     summary: str
     data: Dict[str, Any]
+
 
 class CaseState(TypedDict):
     case_id: str

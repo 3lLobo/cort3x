@@ -7,6 +7,7 @@ from app.classification import classify
 
 tools = [CodeAnalysisTool()]
 
+
 def tool_node(state: CaseState) -> CaseState:
     tool_name = state["next_tool"]
 
@@ -17,7 +18,6 @@ def tool_node(state: CaseState) -> CaseState:
     if tool.is_applicable(state):
         result = tool.run(state)
         state["findings"].append(result)
-        }
 
     return state
 
@@ -37,11 +37,9 @@ def should_continue(state: CaseState):
 def autogen_check_node(state: CaseState) -> CaseState:
     if len(state["findings"]) < 2:
         summary = run_autogen_analysis(state)
-        state["findings"].append({
-            "source": "autogen",
-            "summary": summary,
-            "data": {"confidence": 0.6}
-        })
+        state["findings"].append(
+            {"source": "autogen", "summary": summary, "data": {"confidence": 0.6}}
+        )
     return state
 
 
@@ -61,12 +59,7 @@ def build_graph():
     graph.set_entry_point("decision")
 
     graph.add_conditional_edges(
-        "decision",
-        should_continue,
-        {
-            "tool": "tool",
-            "autogen_check": "autogen_check"
-        }
+        "decision", should_continue, {"tool": "tool", "autogen_check": "autogen_check"}
     )
 
     graph.add_edge("tool", "decision")

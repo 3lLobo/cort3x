@@ -13,5 +13,5 @@ class CodeAnalysisTool(Tool):
         return Finding(
             source=self.name,
             summary="Suspicious PowerShell obfuscation detected",
-            data={"confidence": 0.78}
+            data={"confidence": 0.78},
         )
